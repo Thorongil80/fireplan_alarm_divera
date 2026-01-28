@@ -14,13 +14,13 @@ use rustls::pki_types::{CertificateDer, PrivateKeyDer};
 async fn root() -> impl Responder {
     let ts = chrono::Utc::now().to_rfc3339();
     let html = format!(r#"<!doctype html>
-<html lang=\"en\">
+<html lang="en">
 <head>
-  <meta charset=\"utf-8\" />
-  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Fireplan IMAP</title>
   <style>
-    body {{ font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Helvetica, Arial, \"Apple Color Emoji\", \"Segoe UI Emoji\"; background: #0f172a; color: #e2e8f0; display: grid; place-items: center; min-height: 100vh; margin: 0; }}
+    body {{ font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji"; background: #0f172a; color: #e2e8f0; display: grid; place-items: center; min-height: 100vh; margin: 0; }}
     .card {{ background: #111827; border: 1px solid #1f2937; border-radius: 12px; padding: 28px 32px; box-shadow: 0 10px 30px rgba(0,0,0,.4); max-width: 720px; }}
     h1 {{ margin: 0 0 12px; font-size: 36px; letter-spacing: .5px; }}
     p {{ margin: 8px 0 0; color: #cbd5e1; }}
@@ -33,10 +33,10 @@ async fn root() -> impl Responder {
   </style>
 </head>
 <body>
-  <div class=\"card\">
+  <div class="card">
     <h1>Howdy partner 👋</h1>
-    <p>Welcome to the Fireplan DIVERA proxy service. Your <a href=\"/metrics\">server</a> is up and running over <code>HTTPS</code>.</p>
-    <small class=\"status\"><span class=\"dot\"></span> Healthy · {ts}</small>
+    <p>Welcome to the Fireplan DIVERA proxy service. Your <a href="/metrics">server</a> is up and running over <code>HTTPS</code>.</p>
+    <small class="status"><span class="dot"></span> Healthy · {ts}</small>
   </div>
 </body>
 </html>"#);
@@ -95,13 +95,13 @@ async fn metrics() -> impl Responder {
     let ts = chrono::Utc::now().to_rfc3339();
 
     let html = format!(r#"<!doctype html>
-<html lang=\"en\">
+<html lang="en">
 <head>
-  <meta charset=\"utf-8\" />
-  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Server Metrics</title>
   <style>
-    body {{ font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Helvetica, Arial, \"Apple Color Emoji\", \"Segoe UI Emoji\"; background: #0f172a; color: #e2e8f0; min-height: 100vh; margin: 0; }}
+    body {{ font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji"; background: #0f172a; color: #e2e8f0; min-height: 100vh; margin: 0; }}
     .wrap {{ max-width: 860px; margin: 0 auto; padding: 24px; }}
     .card {{ background: #111827; border: 1px solid #1f2937; border-radius: 12px; padding: 24px 28px; box-shadow: 0 10px 30px rgba(0,0,0,.4); margin-top: 24px; }}
     h1 {{ margin: 0; font-size: 28px; }}
@@ -116,40 +116,40 @@ async fn metrics() -> impl Responder {
   </style>
 </head>
 <body>
-  <div class=\"wrap\">
-    <div class=\"card\">
+  <div class="wrap">
+    <div class="card">
       <h1>Server Metrics</h1>
-      <small class=\"muted\">Updated · {ts}</small>
-      <div class=\"grid\">
-        <div class=\"item\">
+      <small class="muted">Updated · {ts}</small>
+      <div class="grid">
+        <div class="item">
           <h2>CPU</h2>
           <ul>
             <li>Average usage: {avg_cpu:.1}%</li>
             <li>Cores: {cpu_cores}</li>
           </ul>
         </div>
-        <div class=\"item\">
+        <div class="item">
           <h2>Memory</h2>
           <ul>
             <li>Total: {total_mem} bytes</li>
             <li>Used: {used_mem} bytes</li>
           </ul>
         </div>
-        <div class=\"item\">
+        <div class="item">
           <h2>Swap</h2>
           <ul>
             <li>Total: {total_swap} bytes</li>
             <li>Used: {used_swap} bytes</li>
           </ul>
         </div>
-        <div class=\"item\">
+        <div class="item">
           <h2>Processes</h2>
           <ul>
             <li>Total: {processes_total}</li>
           </ul>
         </div>
       </div>
-      <small class=\"muted\"><a href=\"/\">Back to Home</a></small>
+      <small class="muted"><a href="/">Back to Home</a></small>
     </div>
   </div>
 </body>
