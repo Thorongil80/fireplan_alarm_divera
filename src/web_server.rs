@@ -12,33 +12,38 @@ use rustls::pki_types::{CertificateDer, PrivateKeyDer};
 // ----------------------
 #[get("/")]
 async fn root() -> impl Responder {
-    HttpResponse::Ok()
-        .content_type("text/html; charset=utf-8")
-        .body(
-            r#"<!doctype html>
+    let ts = chrono::Utc::now().to_rfc3339();
+    let html = format!(r#"<!doctype html>
 <html lang=\"en\">
 <head>
   <meta charset=\"utf-8\" />
   <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />
   <title>Fireplan IMAP</title>
   <style>
-    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Helvetica, Arial, \"Apple Color Emoji\", \"Segoe UI Emoji\"; background: #0f172a; color: #e2e8f0; display: grid; place-items: center; min-height: 100vh; margin: 0; }
-    .card { background: #111827; border: 1px solid #1f2937; border-radius: 12px; padding: 28px 32px; box-shadow: 0 10px 30px rgba(0,0,0,.4); max-width: 680px; }
-    h1 { margin: 0 0 12px; font-size: 36px; letter-spacing: .5px; }
-    p { margin: 8px 0 0; color: #cbd5e1; }
-    code { background: #0b1220; padding: 2px 6px; border-radius: 6px; }
-    a { color: #93c5fd; text-decoration-color: #1e293b; }
-    a:hover { color: #bfdbfe; }
+    body {{ font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Helvetica, Arial, \"Apple Color Emoji\", \"Segoe UI Emoji\"; background: #0f172a; color: #e2e8f0; display: grid; place-items: center; min-height: 100vh; margin: 0; }}
+    .card {{ background: #111827; border: 1px solid #1f2937; border-radius: 12px; padding: 28px 32px; box-shadow: 0 10px 30px rgba(0,0,0,.4); max-width: 720px; }}
+    h1 {{ margin: 0 0 12px; font-size: 36px; letter-spacing: .5px; }}
+    p {{ margin: 8px 0 0; color: #cbd5e1; }}
+    code {{ background: #0b1220; padding: 2px 6px; border-radius: 6px; }}
+    small {{ color: #94a3b8; display: block; margin-top: 12px; }}
+    a {{ color: #93c5fd; text-decoration-color: #1e293b; }}
+    a:hover {{ color: #bfdbfe; }}
+    .status {{ display: inline-flex; align-items: center; gap: 8px; }}
+    .dot {{ width: 8px; height: 8px; border-radius: 50%; background: #22c55e; box-shadow: 0 0 0 3px rgba(34,197,94,.25); }}
   </style>
 </head>
 <body>
   <div class=\"card\">
     <h1>Howdy partner 👋</h1>
     <p>Welcome to the Fireplan DIVERA proxy service. Your <a href=\"/metrics\">server</a> is up and running over <code>HTTPS</code>.</p>
+    <small class=\"status\"><span class=\"dot\"></span> Healthy · {ts}</small>
   </div>
 </body>
-</html>"#,
-        )
+</html>"#);
+
+    HttpResponse::Ok()
+        .content_type("text/html; charset=utf-8")
+        .body(html)
 }
 
 #[get("/health")]

@@ -61,6 +61,13 @@ pub struct ParsedData {
     zusatzinfo: String,
 }
 
+// New event enum to transport richer context
+#[derive(Clone, Debug)]
+pub enum Event {
+    Data(ParsedData),
+    Shutdown,
+}
+
 fn main() {
     let file = if cfg!(windows) {
         format!(
@@ -91,13 +98,41 @@ fn main() {
         error!("Failed to start HTTPS server: {e}");
     }
 
-    let (_tx, rx) = mpsc::channel::<ParsedData>();
+    // Channel now carries Event
+    let (tx, rx) = mpsc::channel::<Event>();
+
+    // Spawn a thread to listen for OS signals and send Shutdown
+    {
+        let tx_sig = tx.clone();
+        std::thread::spawn(move || {
+            use signal_hook::consts::signal::*;
+            use signal_hook::iterator::Signals;
+
+            let mut signals = match Signals::new(&[SIGINT, SIGTERM, SIGHUP, SIGQUIT]) {
+                Ok(s) => s,
+                Err(e) => {
+                    error!("Failed to register signal handlers: {e}");
+                    return;
+                }
+            };
+
+            for sig in signals.forever() {
+                match sig {
+                    SIGINT | SIGTERM | SIGHUP | SIGQUIT => {
+                        let _ = tx_sig.send(Event::Shutdown);
+                        break;
+                    }
+                    _ => {}
+                }
+            }
+        });
+    }
 
     let mut known_rics : HashSet<(String,String)> = HashSet::new();
 
     loop {
         match rx.recv() {
-            Ok(mut data) => {
+            Ok(Event::Data(mut data)) => {
                 let mut alarmier_rics: Vec<Ric> = vec![];
                 for ric in &data.rics {
                     if ! known_rics.contains(&(data.einsatznrlst.clone(), ric.ric.clone())) {
@@ -120,8 +155,13 @@ fn main() {
                     }
                 }
             }
+            Ok(Event::Shutdown) => {
+                info!("Shutdown event received, exiting main loop");
+                break;
+            }
             Err(e) => {
                 error!("Receive error: {}", e);
+                break;
             }
         }
     }
