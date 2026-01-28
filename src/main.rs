@@ -46,6 +46,7 @@ pub struct Configuration {
     rics: Vec<Ric>,
     http_port: u16,
     http_host: String,
+    http_auth_token: String,
 }
 #[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct ParsedData {
@@ -94,7 +95,7 @@ fn main() {
     info!("Configuration: {:?}", configuration);
 
     // Start HTTPS web server (actix) before receiving from channel
-    if let Err(e) = web_server::start_https_server(configuration.http_host.clone(), configuration.http_port) {
+    if let Err(e) = web_server::start_https_server(configuration.http_host.clone(), configuration.http_port, configuration.http_auth_token.clone()) {
         error!("Failed to start HTTPS server: {e}");
     }
 

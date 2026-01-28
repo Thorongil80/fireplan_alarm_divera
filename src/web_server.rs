@@ -2,13 +2,44 @@ use log::{error, info};
 use std::thread::JoinHandle;
 
 // Actix Web imports
-use actix_web::{get, web, App, HttpResponse, HttpServer, Responder};
+use actix_web::{get, post, web, App, HttpResponse, HttpServer, Responder};
 
 // rustls (0.23) imports to enable HTTPS
 use rustls::pki_types::{CertificateDer, PrivateKeyDer};
 
+// Shared app state for handlers
+#[derive(Clone)]
+pub struct AppState {
+    pub auth_token: String,
+}
+
+// Query parameter for token
+#[derive(serde::Deserialize)]
+struct QueryToken {
+    token: String,
+}
+
+// Incoming JSON payload structure
+#[derive(serde::Deserialize)]
+#[derive(Debug)]
+struct SubmitPayload {
+    id: u64,
+    number: String,
+    title: String,
+    text: String,
+    address: String,
+    lat: String,
+    lng: String,
+    priority: u8,
+    cluster: Vec<String>,
+    group: Vec<String>,
+    vehicle: Vec<String>,
+    ts_create: i64,
+    ts_update: i64,
+}
+
 // ----------------------
-// Actix Web handlers (10 total)
+// Actix Web handlers (11 total)
 // ----------------------
 #[get("/")]
 async fn root() -> impl Responder {
@@ -171,6 +202,49 @@ async fn help_page() -> impl Responder {
 #[get("/ping")]
 async fn ping() -> impl Responder { HttpResponse::Ok().body("pong") }
 
+#[post("/submit")]
+async fn submit(
+    query: web::Query<QueryToken>,
+    body: web::Bytes,
+    state: web::Data<AppState>,
+) -> impl Responder {
+    if query.token != state.auth_token {
+        return HttpResponse::Unauthorized().json(serde_json::json!({
+            "error": "Unauthorized",
+        }));
+    }
+
+    match serde_json::from_slice::<SubmitPayload>(&body) {
+        Ok(_data) => {
+            info!("Received: {:?}", _data);
+            HttpResponse::Ok().json(serde_json::json!({
+                "status": "submitted"
+            }))
+        },
+        Err(e) => {
+            let example = serde_json::json!({
+                "id": 247,
+                "number": "E-123",
+                "title": "FEUER3",
+                "text": "Unklare Rauchentwicklung im Hafen",
+                "address": "Hauptstraße 247, 12345 Musterstadt",
+                "lat": "1.23456",
+                "lng": "12.34567",
+                "priority": 1,
+                "cluster": ["Untereinheit 1"],
+                "group": ["Gruppe 1", "Gruppe 2"],
+                "vehicle": ["HLF-1", "LF-10"],
+                "ts_create": 1769601252,
+                "ts_update": 1769601252
+            });
+            HttpResponse::BadRequest().json(serde_json::json!({
+                "error": format!("JSON parse error: {}", e),
+                "example": example,
+            }))
+        }
+    }
+}
+
 // Build rustls ServerConfig from Let's Encrypt files for the configured hostname
 fn build_rustls_config(hostname: &str) -> anyhow::Result<rustls::ServerConfig> {
     let base = format!("/etc/letsencrypt/live/{hostname}");
@@ -238,14 +312,13 @@ fn build_rustls_config(hostname: &str) -> anyhow::Result<rustls::ServerConfig> {
     Ok(cfg)
 }
 
-pub fn start_https_server(http_host: String, http_port: u16) -> std::io::Result<JoinHandle<()>> {
+pub fn start_https_server(http_host: String, http_port: u16, auth_token: String) -> std::io::Result<JoinHandle<()>> {
     let addr = format!("0.0.0.0:{http_port}");
 
     // Build rustls config up-front to fail fast if missing certs
     let tls_config = match build_rustls_config(&http_host) {
         Ok(c) => c,
         Err(e) => {
-            // Map to io::Error to satisfy return type; also log error
             error!("TLS configuration failed: {e}");
             return Err(std::io::Error::new(std::io::ErrorKind::Other, e.to_string()));
         }
@@ -255,8 +328,10 @@ pub fn start_https_server(http_host: String, http_port: u16) -> std::io::Result<
         info!("Starting HTTPS server on https://{}:{}", http_host, http_port);
         let sys = actix_web::rt::System::new();
         sys.block_on(async move {
-            let server = HttpServer::new(|| {
+            let app_state = web::Data::new(AppState { auth_token });
+            let server = HttpServer::new(move || {
                 App::new()
+                    .app_data(app_state.clone())
                     .service(root)
                     .service(health)
                     .service(ready)
@@ -267,6 +342,7 @@ pub fn start_https_server(http_host: String, http_port: u16) -> std::io::Result<
                     .service(echo)
                     .service(help_page)
                     .service(ping)
+                    .service(submit)
             })
             .bind_rustls_0_23(addr, tls_config)
             .expect("failed to bind HTTPS socket")
