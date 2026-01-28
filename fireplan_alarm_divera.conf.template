@@ -13,6 +13,9 @@ regex_einsatznrleitstelle = 'Einsatznummer\s+:\s(.*)\s*'
 regex_koordinaten = 'https://www.google.de/maps/place/(\d+.\d*,\d+.\d*)'
 regex_objektname = 'Objekt\s*:\s*(.*)'
 
+http_host = 'ffstettfeldbckp.synology.me'
+https_port = 4433
+
 # this is evaluated on the complete email text, check multi-line mode in rust crate regex for syntax
 regex_zusatzinfo = '(?mRU)---------------------------\s*BEMERKUNG\s*---------------------------(.*)--------------------'
 

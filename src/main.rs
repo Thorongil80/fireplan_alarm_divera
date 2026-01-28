@@ -45,6 +45,8 @@ pub struct Configuration {
     simple_trigger: Option<String>,
     rics: Vec<Ric>,
     standorte: Vec<Standort>,
+    http_port: u16,
+    http_host: String,
 }
 #[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct ParsedData {
