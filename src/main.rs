@@ -6,10 +6,23 @@ use simplelog::{ColorChoice, CombinedLogger, Config, TermLogger, TerminalMode, S
 use std::fs;
 use std::sync::mpsc;
 use cmd_lib::run_cmd;
+use once_cell::sync::OnceCell;
 
 mod fireplan;
 mod parser;
 mod web_server;
+
+// Global static channel endpoints
+static SENDER: OnceCell<mpsc::Sender<Event>> = OnceCell::new();
+
+// Public helper to allow any thread to send an Event to main loop
+pub fn send_event(event: Event) -> Result<(), mpsc::SendError<Event>> {
+    if let Some(tx) = SENDER.get() {
+        tx.send(event)
+    } else {
+        Err(mpsc::SendError(event))
+    }
+}
 
 #[derive(Clone, Serialize, Deserialize, Eq, Hash, PartialEq, Debug)]
 pub struct Standort {
@@ -113,13 +126,13 @@ fn main() {
         error!("Failed to start HTTPS server: {e}");
     }
 
-    // Channel now carries Event
+    // Initialize global channel
     let (tx, rx) = mpsc::channel::<Event>();
+    let _ = SENDER.set(tx.clone());
 
     // Spawn a thread to listen for OS signals and send Shutdown
     {
-        let tx_sig = tx.clone();
-        std::thread::spawn(move || {
+        std::thread::spawn(|| {
             use signal_hook::consts::signal::*;
             use signal_hook::iterator::Signals;
 
@@ -134,7 +147,7 @@ fn main() {
             for sig in signals.forever() {
                 match sig {
                     SIGINT | SIGTERM | SIGHUP | SIGQUIT => {
-                        let _ = tx_sig.send(Event::Shutdown);
+                        let _ = send_event(Event::Shutdown);
                         break;
                     }
                     _ => {}
@@ -145,6 +158,7 @@ fn main() {
 
     let mut known_rics : HashSet<(String,String)> = HashSet::new();
 
+    // Use the local receiver in the main loop
     loop {
         match rx.recv() {
             Ok(Event::Data(mut data)) => {
@@ -173,7 +187,7 @@ fn main() {
             Ok(Event::Submit(payload)) => {
                 match parser::parse(payload, configuration.clone()) {
                     Ok(parsed_data) => {
-                        match tx.send(Event::Data(parsed_data)) {
+                        match send_event(Event::Data(parsed_data)) {
                             Ok(_) => info!("Parsed data sent to main loop"),
                             Err(e2) => error!("Failed to send parsed data: {}", e2),
                         }

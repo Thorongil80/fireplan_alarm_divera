@@ -703,6 +703,7 @@ dependencies = [
  "cmd_lib",
  "homedir",
  "log",
+ "once_cell",
  "regex",
  "reqwest",
  "rustls",

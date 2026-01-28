@@ -216,8 +216,9 @@ async fn submit(
     info!("Received: {}", String::from_utf8_lossy(&body));
 
     match serde_json::from_slice::<crate::SubmitPayload>(&body) {
-        Ok(_data) => {
-            info!("Received: {:?}", _data);
+        Ok(data) => {
+            let _ = crate::send_event(crate::Event::Submit(data.clone()));
+            info!("Received: {:?}", data);
             HttpResponse::Ok().json(serde_json::json!({
                 "status": "submitted"
             }))
