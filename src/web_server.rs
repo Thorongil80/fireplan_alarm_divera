@@ -25,7 +25,7 @@ struct QueryToken {
 #[derive(Debug)]
 struct SubmitPayload {
     id: u64,
-    number: String,
+    foreign_id: String,
     title: String,
     text: String,
     address: String,
