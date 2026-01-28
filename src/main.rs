@@ -92,7 +92,7 @@ async fn root() -> impl Responder {
 <body>
   <div class=\"card\">
     <h1>Howdy partner 👋</h1>
-    <p>Welcome to the Fireplan IMAP service. Your server is up and running over <code>HTTPS</code>.</p>
+    <p>Welcome to the Fireplan DIVERA proxy service. Your server is up and running over <code>HTTPS</code>.</p>
   </div>
 </body>
 </html>"#,
