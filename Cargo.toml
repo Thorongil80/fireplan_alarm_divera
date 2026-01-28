@@ -8,15 +8,11 @@ edition = "2021"
 [dependencies]
 log = "0.4.29"
 toml = "0.9.11"
-imap = "2.4.1"
 reqwest = { version = "0.13.1", features = ["json", "blocking"]}
 simplelog = { version = "0.12.2", features = ["paris"] }
-paris = "1.5.15"
 serde = { version = "1.0.228", features = ["derive"] }
 serde_derive = "1.0.228"
-native-tls = "0.2.14"
 anyhow = "1.0.100"
-mail-parser = "0.11.1"
 regex = "1.12.2"
 homedir = "0.3.6"
 serde_json = "1.0.149"
@@ -25,6 +21,5 @@ actix-web = { version = "4.12.1", features = ["rustls-0_23"] }
 rustls = "0.23"
 rustls-pemfile = "2.2.0"
 chrono = { version = "0.4.43", default-features = false, features = ["clock"] }
-sysinfo = { version = "0.31.4", default-features = false, features = ["system"] }
-signal-hook = "0.3.17"
-env_logger = "0.11.5"
+sysinfo = { version = "0.38.0", default-features = false, features = ["system"] }
+signal-hook = "0.4.3"

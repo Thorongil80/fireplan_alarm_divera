@@ -99,10 +99,10 @@ fn fmt_bytes_gib_mib(bytes: u64) -> String {
 async fn metrics() -> impl Responder {
     use sysinfo::{System, CpuRefreshKind, RefreshKind, MemoryRefreshKind};
 
-    let refresh = RefreshKind::new()
-        .with_memory(MemoryRefreshKind::new().with_ram().with_swap())
+    let refresh = RefreshKind::everything()
+        .with_memory(MemoryRefreshKind::everything().with_ram().with_swap())
         .with_cpu(CpuRefreshKind::everything())
-        .with_processes(sysinfo::ProcessRefreshKind::new());
+        .with_processes(sysinfo::ProcessRefreshKind::everything());
 
     let mut sys = System::new_with_specifics(refresh);
     sys.refresh_specifics(refresh);
