@@ -1,3 +1,4 @@
+use std::os::unix::ffi::OsStrExt;
 use log::{error, info};
 use std::thread::JoinHandle;
 
@@ -95,14 +96,23 @@ fn fmt_bytes_gib_mib(bytes: u64) -> String {
     }
 }
 
+fn gauge_html(percent: f64) -> String {
+    let p = if percent.is_finite() { percent.clamp(0.0, 100.0) } else { 0.0 };
+    let class = if p < 70.0 { "ok" } else if p < 90.0 { "warn" } else { "crit" };
+    format!(
+        r#"<div class="gauge"><div class="bar {class}" style="width: {p:.1}%;"></div></div>"#,
+    )
+}
+
 #[get("/metrics")]
 async fn metrics() -> impl Responder {
-    use sysinfo::{System, CpuRefreshKind, RefreshKind, MemoryRefreshKind};
+    use sysinfo::{System, CpuRefreshKind, RefreshKind, MemoryRefreshKind, ProcessRefreshKind, Disks};
 
     let refresh = RefreshKind::everything()
         .with_memory(MemoryRefreshKind::everything().with_ram().with_swap())
         .with_cpu(CpuRefreshKind::everything())
-        .with_processes(sysinfo::ProcessRefreshKind::everything());
+
+        .with_processes(ProcessRefreshKind::everything());
 
     let mut sys = System::new_with_specifics(refresh);
     sys.refresh_specifics(refresh);
@@ -122,6 +132,40 @@ async fn metrics() -> impl Responder {
     let total_swap_fmt = fmt_bytes_gib_mib(total_swap);
     let used_swap_fmt = fmt_bytes_gib_mib(used_swap);
 
+    let mem_pct = if total_mem > 0 { (used_mem as f64) * 100.0 / (total_mem as f64) } else { 0.0 };
+    let swap_pct = if total_swap > 0 { (used_swap as f64) * 100.0 / (total_swap as f64) } else { 0.0 };
+    let cpu_gauge = gauge_html(avg_cpu as f64);
+    let mem_gauge = gauge_html(mem_pct);
+    let swap_gauge = gauge_html(swap_pct);
+
+    // Build filesystem cards
+    let mut disks_html = String::new();
+
+    let disks = Disks::new_with_refreshed_list();
+
+    for disk in disks.iter() {
+        let mount = disk.mount_point().to_string_lossy().to_string();
+        let fs = String::from_utf8_lossy(disk.file_system().as_bytes());
+        let total = disk.total_space();
+        let free = disk.available_space();
+        let used = total.saturating_sub(free);
+        let pct = if total > 0 { (used as f64) * 100.0 / (total as f64) } else { 0.0 };
+        let total_fmt = fmt_bytes_gib_mib(total);
+        let free_fmt = fmt_bytes_gib_mib(free);
+        let gauge = gauge_html(pct);
+        disks_html.push_str(&format!(
+            r#"<div class="item">
+  <h2>{mount}</h2>
+  <div class="muted">{fs}</div>
+  <ul>
+    <li>Size: {total_fmt}</li>
+    <li>Free: {free_fmt}</li>
+  </ul>
+  {gauge}
+</div>"#
+        ));
+    }
+
     let html = format!(r#"<!doctype html>
 <html lang="en">
 <head>
@@ -130,10 +174,10 @@ async fn metrics() -> impl Responder {
   <title>Server Metrics</title>
   <style>
     body {{ font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji"; background: #0f172a; color: #e2e8f0; min-height: 100vh; margin: 0; }}
-    .wrap {{ max-width: 860px; margin: 0 auto; padding: 24px; }}
+    .wrap {{ max-width: 980px; margin: 0 auto; padding: 24px; }}
     .card {{ background: #111827; border: 1px solid #1f2937; border-radius: 12px; padding: 24px 28px; box-shadow: 0 10px 30px rgba(0,0,0,.4); margin-top: 24px; }}
     h1 {{ margin: 0; font-size: 28px; }}
-    h2 {{ margin: 18px 0 8px; font-size: 18px; color: #cbd5e1; }}
+    h2 {{ margin: 12px 0 6px; font-size: 16px; color: #cbd5e1; }}
     p, li {{ color: #cbd5e1; }}
     small {{ color: #94a3b8; display: block; margin-top: 10px; }}
     .grid {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; }}
@@ -141,6 +185,11 @@ async fn metrics() -> impl Responder {
     .muted {{ color: #94a3b8; }}
     a {{ color: #93c5fd; text-decoration-color: #1e293b; }}
     a:hover {{ color: #bfdbfe; }}
+    .gauge {{ height: 8px; background: #0b1220; border: 1px solid #1f2937; border-radius: 9999px; overflow: hidden; margin-top: 6px; }}
+    .bar {{ height: 100%; }}
+    .bar.ok {{ background: #22c55e; }}
+    .bar.warn {{ background: #eab308; }}
+    .bar.crit {{ background: #ef4444; }}
   </style>
 </head>
 <body>
@@ -155,27 +204,39 @@ async fn metrics() -> impl Responder {
             <li>Average usage: {avg_cpu:.1}%</li>
             <li>Cores: {cpu_cores}</li>
           </ul>
+          {cpu_gauge}
         </div>
         <div class="item">
           <h2>Memory</h2>
           <ul>
             <li>Total: {total_mem_fmt}</li>
-            <li>Used: {used_mem_fmt}</li>
+            <li>Used: {used_mem_fmt} ({mem_pct:.1}%)</li>
           </ul>
+          {mem_gauge}
         </div>
         <div class="item">
           <h2>Swap</h2>
           <ul>
             <li>Total: {total_swap_fmt}</li>
-            <li>Used: {used_swap_fmt}</li>
+            <li>Used: {used_swap_fmt} ({swap_pct:.1}%)</li>
           </ul>
+          {swap_gauge}
         </div>
-        <div class="item">
-          <h2>Processes</h2>
-          <ul>
-            <li>Total: {processes_total}</li>
-          </ul>
-        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h1>File systems</h1>
+      <div class="grid fs-grid">
+        {disks_html}
+      </div>
+      <small class="muted"><a href="/">Back to Home</a></small>
+    </div>
+
+    <div class="card">
+      <h1>Processes</h1>
+      <div class="grid fs-grid">
+        Total: {processes_total}
       </div>
       <small class="muted"><a href="/">Back to Home</a></small>
     </div>

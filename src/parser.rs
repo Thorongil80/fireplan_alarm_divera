@@ -92,6 +92,9 @@ pub fn parse(
     result.ort = result.ort.trim().to_string();
     result.einsatznrlst = data.foreign_id;
 
+    // Google Maps coordinates from lat/lng (format: "lat,lng")
+    result.koordinaten = format!("{},{}", data.lat.trim(), data.lng.trim());
+
     // on the left hand-side of the first comma is the street name
     result.strasse = data.address.split(',').next().unwrap_or("").split_whitespace().next().unwrap_or("").to_string();
 
