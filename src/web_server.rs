@@ -103,6 +103,16 @@ async fn time() -> impl Responder {
     HttpResponse::Ok().json(serde_json::json!({"utc": now}))
 }
 
+fn fmt_bytes_gib_mib(bytes: u64) -> String {
+    const MIB: f64 = 1024.0 * 1024.0;
+    const GIB: f64 = 1024.0 * 1024.0 * 1024.0;
+    if (bytes as f64) >= GIB {
+        format!("{:.2} GiB", (bytes as f64) / GIB)
+    } else {
+        format!("{:.2} MiB", (bytes as f64) / MIB)
+    }
+}
+
 #[get("/metrics")]
 async fn metrics() -> impl Responder {
     use sysinfo::{System, CpuRefreshKind, RefreshKind, MemoryRefreshKind};
@@ -124,6 +134,11 @@ async fn metrics() -> impl Responder {
     let processes_total = sys.processes().len() as u64;
 
     let ts = chrono::Utc::now().to_rfc3339();
+
+    let total_mem_fmt = fmt_bytes_gib_mib(total_mem);
+    let used_mem_fmt = fmt_bytes_gib_mib(used_mem);
+    let total_swap_fmt = fmt_bytes_gib_mib(total_swap);
+    let used_swap_fmt = fmt_bytes_gib_mib(used_swap);
 
     let html = format!(r#"<!doctype html>
 <html lang="en">
@@ -162,15 +177,15 @@ async fn metrics() -> impl Responder {
         <div class="item">
           <h2>Memory</h2>
           <ul>
-            <li>Total: {total_mem} bytes</li>
-            <li>Used: {used_mem} bytes</li>
+            <li>Total: {total_mem_fmt}</li>
+            <li>Used: {used_mem_fmt}</li>
           </ul>
         </div>
         <div class="item">
           <h2>Swap</h2>
           <ul>
-            <li>Total: {total_swap} bytes</li>
-            <li>Used: {used_swap} bytes</li>
+            <li>Total: {total_swap_fmt}</li>
+            <li>Used: {used_swap_fmt}</li>
           </ul>
         </div>
         <div class="item">
