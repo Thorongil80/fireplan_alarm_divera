@@ -95,7 +95,7 @@ fn main() {
     info!("Configuration: {:?}", configuration);
 
     // Start HTTPS web server (actix) before receiving from channel
-    if let Err(e) = web_server::start_https_server(configuration.http_host.clone(), configuration.http_port, configuration.http_auth_token.clone()) {
+    if let Err(e) = web_server::start_https_server(configuration.http_host.clone(), configuration.http_port, configuration.auth_token.clone()) {
         error!("Failed to start HTTPS server: {e}");
     }
 
