@@ -1,5 +1,4 @@
 use std::collections::HashSet;
-use crate::imap::monitor_postbox;
 use log::{error, info, LevelFilter, warn};
 use serde_derive::Deserialize;
 use serde_derive::Serialize;
@@ -9,7 +8,6 @@ use std::sync::mpsc;
 use cmd_lib::run_cmd;
 
 mod fireplan;
-mod imap;
 mod parser;
 mod web_server;
 
