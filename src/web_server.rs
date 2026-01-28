@@ -20,27 +20,8 @@ struct QueryToken {
     token: String,
 }
 
-// Incoming JSON payload structure
-#[derive(serde::Deserialize)]
-#[derive(Debug)]
-struct SubmitPayload {
-    id: u64,
-    foreign_id: String,
-    title: String,
-    text: String,
-    address: String,
-    lat: String,
-    lng: String,
-    priority: u8,
-    cluster: Vec<String>,
-    group: Vec<String>,
-    vehicle: Vec<String>,
-    ts_create: i64,
-    ts_update: i64,
-}
-
 // ----------------------
-// Actix Web handlers (11 total)
+// Actix Web handlers (9 total)
 // ----------------------
 #[get("/")]
 async fn root() -> impl Responder {
@@ -234,7 +215,7 @@ async fn submit(
     info!("Received /submit request with body length: {}", body.len());
     info!("Received: {}", String::from_utf8_lossy(&body));
 
-    match serde_json::from_slice::<SubmitPayload>(&body) {
+    match serde_json::from_slice::<crate::SubmitPayload>(&body) {
         Ok(_data) => {
             info!("Received: {:?}", _data);
             HttpResponse::Ok().json(serde_json::json!({

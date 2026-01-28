@@ -31,12 +31,10 @@ pub struct Ric {
 #[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct Configuration {
     fireplan_api_key: String,
-    regex_einsatzstichwort: String,
     regex_strasse: String,
     regex_ort: String,
     regex_hausnummer: String,
     regex_ortsteil: String,
-    regex_einsatznrleitstelle: String,
     regex_koordinaten: String,
     regex_zusatzinfo: String,
     regex_objektname: String,
@@ -60,10 +58,29 @@ pub struct ParsedData {
     zusatzinfo: String,
 }
 
+// Incoming JSON payload structure for submit
+#[derive(Clone, Serialize, Deserialize, Debug)]
+pub struct SubmitPayload {
+    id: u64,
+    foreign_id: String,
+    title: String,
+    text: String,
+    address: String,
+    lat: String,
+    lng: String,
+    priority: u8,
+    cluster: Vec<String>,
+    group: Vec<String>,
+    vehicle: Vec<String>,
+    ts_create: i64,
+    ts_update: i64,
+}
+
 // New event enum to transport richer context
 #[derive(Clone, Debug)]
 pub enum Event {
     Data(ParsedData),
+    Submit(SubmitPayload),
     Shutdown,
 }
 
@@ -154,6 +171,19 @@ fn main() {
                             Ok(()) => info!("Execute ok"),
                             Err(e) => error!("Failure: {e}")
                         }
+                    }
+                }
+            }
+            Ok(Event::Submit(payload)) => {
+                match parser::parse(payload, configuration.clone()) {
+                    Ok(parsed_data) => {
+                        match tx.send(Event::Data(parsed_data)) {
+                            Ok(_) => info!("Parsed data sent to main loop"),
+                            Err(e2) => error!("Failed to send parsed data: {}", e2),
+                        }
+                    }
+                    Err(e) => {
+                        error!("Failed to parse payload text: {}", e);
                     }
                 }
             }
