@@ -234,9 +234,14 @@ async fn metrics() -> impl Responder {
     </div>
 
     <div class="card">
-      <h1>Processes</h1>
+      <h1>Other</h1>
       <div class="grid fs-grid">
-        Total: {processes_total}
+        <div class="item">
+          <h2>Processes</h2>
+          <ul>
+            <li>Total: {processes_total}</li>
+          </ul>
+        </div>
       </div>
       <small class="muted"><a href="/">Back to Home</a></small>
     </div>
