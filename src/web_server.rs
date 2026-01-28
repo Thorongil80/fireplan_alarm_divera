@@ -224,10 +224,14 @@ async fn submit(
     state: web::Data<AppState>,
 ) -> impl Responder {
     if query.token != state.auth_token {
+        error!("Invalid auth token");
         return HttpResponse::Unauthorized().json(serde_json::json!({
             "error": "Unauthorized",
         }));
     }
+
+    info!("Received /submit request with body length: {}", body.len());
+    info!("Received: {}", String::from_utf8_lossy(&body));
 
     match serde_json::from_slice::<SubmitPayload>(&body) {
         Ok(_data) => {
@@ -237,6 +241,7 @@ async fn submit(
             }))
         },
         Err(e) => {
+            error!("Invalid payload: {}", e);
             let example = serde_json::json!({
                 "id": 247,
                 "number": "E-123",
