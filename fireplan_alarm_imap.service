@@ -8,6 +8,6 @@ Type=simple
 Restart=always
 RestartSec=10
 User=admin
-ExecStart=/usr/local/bin/fireplan_alarm_imap
+ExecStart=/usr/local/bin/fireplan_alarm_divera
 [Install]
 WantedBy=multi-user.target

@@ -63,12 +63,12 @@ pub struct ParsedData {
 fn main() {
     let file = if cfg!(windows) {
         format!(
-            "{}\\fireplan_alarm_imap.conf",
+            "{}\\fireplan_alarm_divera.conf",
             std::env::var("USERPROFILE").unwrap()
         )
     } else {
         format!(
-            "{}/fireplan_alarm_imap.conf",
+            "{}/fireplan_alarm_divera.conf",
             homedir::my_home().unwrap().unwrap().to_string_lossy()
         )
     };
