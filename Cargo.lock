@@ -720,7 +720,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8591b0bcc8a98a64310a2fae1bb3e9b8564dd10e381e6e28010fde8e8e8568db"
 
 [[package]]
-name = "fireplan_alarm_imap"
+name = "fireplan_alarm_divera"
 version = "0.1.0"
 dependencies = [
  "actix-web",
