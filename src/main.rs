@@ -44,7 +44,6 @@ pub struct Configuration {
     regex_objektname: String,
     simple_trigger: Option<String>,
     rics: Vec<Ric>,
-    standorte: Vec<Standort>,
     http_port: u16,
     http_host: String,
 }
@@ -87,34 +86,30 @@ fn main() {
 
     let mut configuration_output = format!("Configuration: {:?}", configuration);
 
-    for standort in configuration.standorte.clone() {
-        configuration_output = configuration_output.replace(&standort.imap_password, "****");
-        configuration_output = configuration_output.replace(&configuration.fireplan_api_key, "****");
-    }
 
     info!("Configuration: {}", configuration_output);
 
-    let mut threads: Vec<JoinHandle<()>> = vec![];
-    let my_standorte = configuration.standorte.clone();
+    // let mut threads: Vec<JoinHandle<()>> = vec![];
+    // let my_standorte = configuration.standorte.clone();
 
-    let (tx, rx) = mpsc::channel();
+     let (tx, rx) = mpsc::channel::<ParsedData>();
 
-    for standort in my_standorte {
-        let my_standort = standort.clone();
-        let my_configuration = configuration.clone();
-        let my_tx = tx.clone();
-        let handle = std::thread::spawn(move || {
-            match monitor_postbox(my_tx, my_standort, my_configuration.clone()) {
-                Ok(_) => {
-                    info!("monitor done: {}", standort.standort)
-                }
-                Err(e) => {
-                    error!("monitor failed: {}, {}", standort.standort, e)
-                }
-            }
-        });
-        threads.push(handle);
-    }
+    // for standort in my_standorte {
+    //     let my_standort = standort.clone();
+    //     let my_configuration = configuration.clone();
+    //     let my_tx = tx.clone();
+    //     let handle = std::thread::spawn(move || {
+    //         match monitor_postbox(my_tx, my_standort, my_configuration.clone()) {
+    //             Ok(_) => {
+    //                 info!("monitor done: {}", standort.standort)
+    //             }
+    //             Err(e) => {
+    //                 error!("monitor failed: {}, {}", standort.standort, e)
+    //             }
+    //         }
+    //     });
+    //     threads.push(handle);
+    // }
 
     let mut known_rics : HashSet<(String,String)> = HashSet::new();
 
