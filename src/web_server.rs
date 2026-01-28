@@ -349,13 +349,6 @@ pub fn start_https_server(http_host: String, http_port: u16, auth_token: String)
         info!("Starting HTTPS server on https://{}:{}", http_host, http_port);
         let sys = actix_web::rt::System::new();
         sys.block_on(async move {
-            // Initialize Actix logger middleware formatting (respects RUST_LOG)
-            // Optional: set default if RUST_LOG not provided
-            if std::env::var("RUST_LOG").is_err() {
-                std::env::set_var("RUST_LOG", "info,actix_web=info,actix_server=info");
-            }
-            env_logger::init_from_env(env_logger::Env::new().default_filter_or("info"));
-
             let app_state = web::Data::new(AppState { auth_token });
             let server = HttpServer::new(move || {
                 App::new()
