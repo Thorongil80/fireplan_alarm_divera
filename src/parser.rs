@@ -66,6 +66,30 @@ pub fn parse(
         String::new()
     };
 
+    let abt1_dummy_ric = Ric {
+        text: "Dummy Abt 1".to_string(),
+        ric: "0999991".to_string(),
+        subric: "B".to_string(),
+    };
+
+    let abt2_dummy_ric = Ric {
+        text: "Dummy Abt 2".to_string(),
+        ric: "0999992".to_string(),
+        subric: "B".to_string(),
+    };
+
+    let abt3_dummy_ric = Ric {
+        text: "Dummy Abt 3".to_string(),
+        ric: "0999993".to_string(),
+        subric: "B".to_string(),
+    };
+
+    let abt4_dummy_ric = Ric {
+        text: "Dummy Abt 4".to_string(),
+        ric: "0999994".to_string(),
+        subric: "B".to_string(),
+    };
+
     for token in rics_source.split(',') {
         let mut temp_lines: Vec<Ric> = vec![];
         for ric in configuration.rics.clone() {
@@ -81,11 +105,49 @@ pub fn parse(
                 };
 
                 temp_lines.push(new_ric);
+
             }
         }
         result.rics.append(&mut temp_lines);
     }
 
+    // always add KdoW RIC
+    let kdow_dummy_ric = Ric {
+        text: "Dummy KdoW".to_string(),
+        ric: "0999995".to_string(),
+        subric: "B".to_string(),
+    };
+
+    result.rics.push(kdow_dummy_ric);
+
+    // loop tokens again to check for vehicle names
+    for token in rics_source.split(',') {
+        if token.contains("UW 1/") {
+            if ! result.rics.contains(&abt1_dummy_ric) {
+                result.rics.push(abt1_dummy_ric.clone());
+            }
+        }
+
+        if token.contains("UW 2/") {
+            if ! result.rics.contains(&abt2_dummy_ric) {
+                result.rics.push(abt2_dummy_ric.clone());
+            }
+        }
+
+        if token.contains("UW 3/") {
+            if ! result.rics.contains(&abt3_dummy_ric) {
+                result.rics.push(abt3_dummy_ric.clone());
+            }
+        }
+
+        if token.contains("UW 4/") {
+            if ! result.rics.contains(&abt4_dummy_ric) {
+                result.rics.push(abt4_dummy_ric.clone());
+            }
+        }
+    }
+
+    // trim spaces from all string fields
     result.einsatzstichwort = data.title.trim().to_string();
     result.ortsteil = result.ortsteil.trim().to_string();
     result.objektname = result.objektname.trim().to_string();
