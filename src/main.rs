@@ -3,7 +3,7 @@ use crate::imap::monitor_postbox;
 use log::{error, info, LevelFilter, warn};
 use serde_derive::Deserialize;
 use serde_derive::Serialize;
-use simplelog::{ColorChoice, CombinedLogger, Config, TermLogger, TerminalMode};
+use simplelog::{ColorChoice, CombinedLogger, Config, TermLogger, TerminalMode, SimpleLogger};
 use std::fs;
 use std::sync::mpsc;
 use cmd_lib::run_cmd;
@@ -84,13 +84,16 @@ fn main() {
     let content = fs::read_to_string(file).expect("Config file missing!");
     let configuration: Configuration = toml::from_str(content.as_str()).unwrap();
 
-    CombinedLogger::init(vec![TermLogger::new(
+    // Robust logger init: use TermLogger when TTY is available, otherwise fallback to SimpleLogger
+    let term = TermLogger::new(
         LevelFilter::Info,
         Config::default(),
         TerminalMode::Mixed,
         ColorChoice::Auto,
-    )])
-    .unwrap();
+    );
+    CombinedLogger::init(vec![term]).unwrap_or_else(|_| {
+        CombinedLogger::init(vec![SimpleLogger::new(LevelFilter::Info, Config::default())]).unwrap();
+    });
 
     info!("Configuration: {:?}", configuration);
 

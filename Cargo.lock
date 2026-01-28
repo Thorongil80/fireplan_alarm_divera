@@ -727,6 +727,7 @@ dependencies = [
  "anyhow",
  "chrono",
  "cmd_lib",
+ "env_logger",
  "homedir",
  "imap",
  "log",
