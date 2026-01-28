@@ -20,32 +20,12 @@ pub fn parse(
         zusatzinfo: "".to_string(),
     };
 
-    return Ok(result);  // do nothing below, need to disable parser for testing
-
     // remove creepy windows line endings
     let body = data.text.replace('\r', "");
 
     for line in body.lines() {
 
-        if let Ok(re) = Regex::new(configuration.regex_strasse.as_str()) {
-            if let Some(caps) = re.captures(line) {
-                result.strasse = caps[1].to_string();
-            }
-        } else {
-            error!(
-                "regex_strasse is not a proper regular expression",
-            );
-        }
 
-        if let Ok(re) = Regex::new(configuration.regex_hausnummer.as_str()) {
-            if let Some(caps) = re.captures(line) {
-                result.hausnummer = caps[1].to_string();
-            }
-        } else {
-            error!(
-                "regex_hausnummer is not a proper regular expression",
-            );
-        }
 
         if let Ok(re) = Regex::new(configuration.regex_ort.as_str()) {
             if let Some(caps) = re.captures(line) {
@@ -67,15 +47,6 @@ pub fn parse(
             );
         }
 
-        if let Ok(re) = Regex::new(configuration.regex_koordinaten.as_str()) {
-            if let Some(caps) = re.captures(line) {
-                result.koordinaten = caps[1].to_string();
-            }
-        } else {
-            error!("regex_koordinaten is not a proper regular expression",
-            );
-        }
-
         if let Ok(re) = Regex::new(configuration.regex_objektname.as_str()) {
             if let Some(caps) = re.captures(line) {
                 result.objektname = caps[1].to_string();
@@ -87,22 +58,20 @@ pub fn parse(
         }
     }
 
-    if let Ok(re) = Regex::new(configuration.regex_zusatzinfo.as_str()) {
-        if let Some(caps) = re.captures(body.as_str()) {
-            result.zusatzinfo = caps[1].to_string();
-        }
+    // detect rics by text - now only in the substring after "Einsatzmittel:"
+    let rics_source = if let Some(start) = body.find("Einsatzmittel:") {
+        let start_idx = start + "Einsatzmittel:".len();
+        body[start_idx..].to_string()
     } else {
-        error!(
-            "regex_zusatzinfo is not a proper regular expression",
-        );
-    }
+        String::new()
+    };
 
-    for line in body.lines() {
-        // detect rics by text
+    for token in rics_source.split(',') {
         let mut temp_lines: Vec<Ric> = vec![];
         for ric in configuration.rics.clone() {
-            if line.contains(ric.text.as_str()) {
+            if token.contains(ric.text.as_str()) {
                 // remove all previously found entries that are substrings, retain what is not a substring of the newly found
+                // each comma-separated part contains at maximum one RIC, so this is safe
                 temp_lines.retain(|x| !ric.text.contains(x.clone().text.as_str()));
 
                 let new_ric = Ric {
@@ -117,15 +86,40 @@ pub fn parse(
         result.rics.append(&mut temp_lines);
     }
 
-    result.einsatzstichwort = data.title;
+    result.einsatzstichwort = data.title.trim().to_string();
     result.ortsteil = result.ortsteil.trim().to_string();
     result.objektname = result.objektname.trim().to_string();
     result.ort = result.ort.trim().to_string();
     result.einsatznrlst = data.foreign_id;
-    result.einsatzstichwort = result.einsatzstichwort.trim().to_string();
-    result.strasse = result.strasse.trim().to_string();
-    result.hausnummer = result.hausnummer.trim().to_string();
-    result.zusatzinfo = result.zusatzinfo.trim().to_string();
+
+    // on the left hand-side of the first comma is the street name
+    result.strasse = data.address.split(',').next().unwrap_or("").split_whitespace().next().unwrap_or("").to_string();
+
+    // on the right hand-side of the first space in the strasse element is the house number (if any)
+    result.hausnummer = data
+        .address
+        .split(',')
+        .next()
+        .unwrap_or("")
+        .split_whitespace()
+        .nth(1)
+        .unwrap_or("")
+        .to_string();
+
+    // extract zusatzinfo between "Meldung:" and "Schlagwort" from the original text
+    if let Some(start_idx) = data.text.find("Meldung:") {
+        let after_start = start_idx + "Meldung:".len();
+        if let Some(end_idx_rel) = data.text[after_start..].find("Schlagwort") {
+            let end_idx = after_start + end_idx_rel;
+            result.zusatzinfo = data.text[after_start..end_idx].trim().to_string();
+        } else {
+            // no end marker found -> empty
+            result.zusatzinfo = String::new();
+        }
+    } else {
+        // no start marker found -> empty
+        result.zusatzinfo = String::new();
+    }
 
     if result.einsatzstichwort.is_empty() {
         warn!("Parser: No EINSATZSTICHWORT found");

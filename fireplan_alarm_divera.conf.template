@@ -8,17 +8,16 @@ regex_strasse = 'Straße\s*:\s*(\D*)*.*'
 regex_ort = 'Ort\s*:\s*\d*\s*(.*)'
 regex_hausnummer = 'Straße\s*:\s*\D*(\d*).*'
 regex_ortsteil = 'Ortsteil\s*:\s*\d*\s*(.*)'
-regex_koordinaten = 'https://www.google.de/maps/place/(\d+.\d*,\d+.\d*)'
 regex_objektname = 'Objekt\s*:\s*(.*)'
 
+# Server Settings
 http_host = 'ffstettfeldbckp.synology.me'
 https_port = 4433
 
+# Fireplan Divera Proxy Auth Token
 auth_token = "super-secret-token"
 
-# this is evaluated on the complete email text, check multi-line mode in rust crate regex for syntax
-regex_zusatzinfo = '(?mRU)---------------------------\s*BEMERKUNG\s*---------------------------(.*)--------------------'
-
+# trigger script on new alarm, may be omitted
 simple_trigger = "/script/foo"
 
 # RIC list matching Text to RIC and SUBRIC
