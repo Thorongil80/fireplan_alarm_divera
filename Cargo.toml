@@ -1,0 +1,23 @@
+[package]
+name = "fireplan_alarm_imap"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+log = "0.4.29"
+toml = "0.9.11"
+imap = "2.4.1"
+reqwest = { version = "0.13.1", features = ["json", "blocking"]}
+simplelog = { version = "0.12.2", features = ["paris"] }
+paris = "1.5.15"
+serde = { version = "1.0.228", features = ["derive"] }
+serde_derive = "1.0.228"
+native-tls = "0.2.14"
+anyhow = "1.0.100"
+mail-parser = "0.11.1"
+regex = "1.12.2"
+homedir = "0.3.6"
+serde_json = "1.0.149"
+cmd_lib = "2.0.0"
