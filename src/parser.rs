@@ -122,29 +122,25 @@ pub fn parse(
 
     // loop tokens again to check for vehicle names
     for token in rics_source.split(',') {
-        if token.contains("UW 1/") {
-            if ! result.rics.contains(&abt1_dummy_ric) {
+        if token.contains("UW 1/")
+            && ! result.rics.contains(&abt1_dummy_ric) {
                 result.rics.push(abt1_dummy_ric.clone());
             }
-        }
 
-        if token.contains("UW 2/") {
-            if ! result.rics.contains(&abt2_dummy_ric) {
+        if token.contains("UW 2/")
+            && ! result.rics.contains(&abt2_dummy_ric) {
                 result.rics.push(abt2_dummy_ric.clone());
             }
-        }
 
-        if token.contains("UW 3/") {
-            if ! result.rics.contains(&abt3_dummy_ric) {
+        if token.contains("UW 3/")
+            && ! result.rics.contains(&abt3_dummy_ric) {
                 result.rics.push(abt3_dummy_ric.clone());
             }
-        }
 
-        if token.contains("UW 4/") {
-            if ! result.rics.contains(&abt4_dummy_ric) {
+        if token.contains("UW 4/")
+            && ! result.rics.contains(&abt4_dummy_ric) {
                 result.rics.push(abt4_dummy_ric.clone());
             }
-        }
     }
 
     // trim spaces from all string fields

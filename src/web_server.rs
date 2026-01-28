@@ -437,7 +437,7 @@ pub fn start_https_server(http_host: String, http_port: u16, auth_token: String)
         Ok(c) => c,
         Err(e) => {
             error!("TLS configuration failed: {e}");
-            return Err(std::io::Error::new(std::io::ErrorKind::Other, e.to_string()));
+            return Err(std::io::Error::other(e.to_string()));
         }
     };
 
