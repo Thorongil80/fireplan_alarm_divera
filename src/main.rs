@@ -46,7 +46,7 @@ pub struct Configuration {
     rics: Vec<Ric>,
     http_port: u16,
     http_host: String,
-    http_auth_token: String,
+    auth_token: String,
 }
 #[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct ParsedData {
