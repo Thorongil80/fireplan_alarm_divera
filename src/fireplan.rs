@@ -2,6 +2,8 @@ use crate::ParsedData;
 use log::{error, info};
 use reqwest::blocking::Client;
 use serde_derive::{Deserialize, Serialize};
+use std::fs::OpenOptions;
+use std::io::Write;
 
 #[derive(Clone, Serialize, Deserialize, Eq, Hash, PartialEq, Debug)]
 struct FireplanAlarm {
@@ -98,6 +100,23 @@ pub fn submit(standort: String, api_key: String, data: ParsedData) {
             Ok(r) => {
                 println!("{:?}", r);
                 if r.status().is_success() {
+                    // On success, append timestamp and "einsatznrlst - einsatzstichwort" to the submitted log file
+                    let ts = chrono::Utc::now().to_rfc3339();
+                    let line = format!(
+                        "{}\t{} - {}\n",
+                        ts,
+                        data.einsatznrlst.as_str(),
+                        data.einsatzstichwort.as_str()
+                    );
+                    if let Err(e) = OpenOptions::new()
+                        .create(true)
+                        .append(true)
+                        .open("/root/fireplan_alarm_divera_submitted")
+                        .and_then(|mut f| f.write_all(line.as_bytes()))
+                    {
+                        error!("[{}] - Failed to write submission log: {}", standort, e);
+                    }
+
                     match r.text() {
                         Ok(t) => {
                             info!("[{}] - Posted alarm, server says: {}", standort, t)

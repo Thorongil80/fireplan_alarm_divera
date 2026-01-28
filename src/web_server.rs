@@ -1,6 +1,8 @@
 use std::os::unix::ffi::OsStrExt;
 use log::{error, info};
 use std::thread::JoinHandle;
+use std::fs::OpenOptions;
+use std::io::Write;
 
 // Actix Web imports
 use actix_web::{get, post, web, App, HttpResponse, HttpServer, Responder};
@@ -24,9 +26,32 @@ struct QueryToken {
 // ----------------------
 // Actix Web handlers (9 total)
 // ----------------------
+fn escape_html(s: &str) -> String {
+    s.replace('&', "&amp;")
+        .replace('<', "&lt;")
+        .replace('>', "&gt;")
+        .replace('"', "&quot;")
+}
+
 #[get("/")]
 async fn root() -> impl Responder {
     let ts = chrono::Utc::now().to_rfc3339();
+
+    // Read log files and prepare reversed HTML content (newest first)
+    let received = std::fs::read_to_string("/root/fireplan_alarm_divera_received").unwrap_or_default();
+    let received_html: String = received
+        .lines()
+        .rev()
+        .map(|l| format!("<div class=\"line\">{}</div>", escape_html(l)))
+        .collect();
+
+    let submitted = std::fs::read_to_string("/root/fireplan_alarm_divera_submitted").unwrap_or_default();
+    let submitted_html: String = submitted
+        .lines()
+        .rev()
+        .map(|l| format!("<div class=\"line\">{}</div>", escape_html(l)))
+        .collect();
+
     let html = format!(r#"<!doctype html>
 <html lang="en">
 <head>
@@ -35,7 +60,7 @@ async fn root() -> impl Responder {
   <title>Fireplan IMAP</title>
   <style>
     body {{ font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji"; background: #0f172a; color: #e2e8f0; display: grid; place-items: center; min-height: 100vh; margin: 0; }}
-    .card {{ background: #111827; border: 1px solid #1f2937; border-radius: 12px; padding: 28px 32px; box-shadow: 0 10px 30px rgba(0,0,0,.4); max-width: 720px; }}
+    .card {{ background: #111827; border: 1px solid #1f2937; border-radius: 12px; padding: 28px 32px; box-shadow: 0 10px 30px rgba(0,0,0,.4); max-width: 900px; width: 100%; box-sizing: border-box; }}
     h1 {{ margin: 0 0 12px; font-size: 36px; letter-spacing: .5px; }}
     p {{ margin: 8px 0 0; color: #cbd5e1; }}
     code {{ background: #0b1220; padding: 2px 6px; border-radius: 6px; }}
@@ -44,6 +69,11 @@ async fn root() -> impl Responder {
     a:hover {{ color: #bfdbfe; }}
     .status {{ display: inline-flex; align-items: center; gap: 8px; }}
     .dot {{ width: 8px; height: 8px; border-radius: 50%; background: #22c55e; box-shadow: 0 0 0 3px rgba(34,197,94,.25); }}
+    .columns {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; margin-top: 18px; }}
+    .panel {{ background: #0b1220; border: 1px solid #1f2937; border-radius: 10px; padding: 14px; }}
+    .panel h2 {{ margin: 0 0 8px; font-size: 18px; color: #cbd5e1; }}
+    .logbox {{ background: #0b1220; border: 1px solid #1f2937; border-radius: 8px; padding: 10px; max-height: 280px; overflow: auto; font: 13px/1.45 ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace; }}
+    .line {{ white-space: pre; color: #e5e7eb; }}
   </style>
 </head>
 <body>
@@ -51,6 +81,17 @@ async fn root() -> impl Responder {
     <h1>Howdy partner 👋</h1>
     <p>Welcome to the Fireplan DIVERA proxy service. Your <a href="/metrics">server</a> is up and running over <code>HTTPS</code>.</p>
     <small class="status"><span class="dot"></span> Healthy · {ts}</small>
+
+    <div class="columns">
+      <div class="panel">
+        <h2>Received</h2>
+        <div class="logbox">{received_html}</div>
+      </div>
+      <div class="panel">
+        <h2>Submitted</h2>
+        <div class="logbox">{submitted_html}</div>
+      </div>
+    </div>
   </div>
 </body>
 </html>"#);
@@ -283,6 +324,13 @@ async fn submit(
 
     match serde_json::from_slice::<crate::SubmitPayload>(&body) {
         Ok(data) => {
+            // Append a line with timestamp and title to the receive log file
+            let ts = chrono::Utc::now().to_rfc3339();
+            let line = format!("{}\t{}\n", ts, data.title);
+            if let Err(e) = OpenOptions::new().create(true).append(true).open("/root/fireplan_alarm_divera_received").and_then(|mut f| f.write_all(line.as_bytes())) {
+                error!("Failed to write receive log: {}", e);
+            }
+
             let _ = crate::send_event(crate::Event::Submit(data.clone()));
             info!("Received: {:?}", data);
             HttpResponse::Ok().json(serde_json::json!({
