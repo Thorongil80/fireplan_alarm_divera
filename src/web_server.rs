@@ -92,21 +92,72 @@ async fn metrics() -> impl Responder {
     let cpu_cores = sys.cpus().len() as u64;
     let processes_total = sys.processes().len() as u64;
 
-    HttpResponse::Ok().json(serde_json::json!({
-        "memory": {
-            "total_bytes": total_mem,
-            "used_bytes": used_mem,
-        },
-        "swap": {
-            "total_bytes": total_swap,
-            "used_bytes": used_swap,
-        },
-        "cpu": {
-            "avg_usage_percent": avg_cpu,
-            "cores": cpu_cores,
-        },
-        "processes_total": processes_total,
-    }))
+    let ts = chrono::Utc::now().to_rfc3339();
+
+    let html = format!(r#"<!doctype html>
+<html lang=\"en\">
+<head>
+  <meta charset=\"utf-8\" />
+  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />
+  <title>Server Metrics</title>
+  <style>
+    body {{ font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Helvetica, Arial, \"Apple Color Emoji\", \"Segoe UI Emoji\"; background: #0f172a; color: #e2e8f0; min-height: 100vh; margin: 0; }}
+    .wrap {{ max-width: 860px; margin: 0 auto; padding: 24px; }}
+    .card {{ background: #111827; border: 1px solid #1f2937; border-radius: 12px; padding: 24px 28px; box-shadow: 0 10px 30px rgba(0,0,0,.4); margin-top: 24px; }}
+    h1 {{ margin: 0; font-size: 28px; }}
+    h2 {{ margin: 18px 0 8px; font-size: 18px; color: #cbd5e1; }}
+    p, li {{ color: #cbd5e1; }}
+    small {{ color: #94a3b8; display: block; margin-top: 10px; }}
+    .grid {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; }}
+    .item {{ background: #0b1220; border: 1px solid #1f2937; border-radius: 10px; padding: 14px; }}
+    .muted {{ color: #94a3b8; }}
+    a {{ color: #93c5fd; text-decoration-color: #1e293b; }}
+    a:hover {{ color: #bfdbfe; }}
+  </style>
+</head>
+<body>
+  <div class=\"wrap\">
+    <div class=\"card\">
+      <h1>Server Metrics</h1>
+      <small class=\"muted\">Updated · {ts}</small>
+      <div class=\"grid\">
+        <div class=\"item\">
+          <h2>CPU</h2>
+          <ul>
+            <li>Average usage: {avg_cpu:.1}%</li>
+            <li>Cores: {cpu_cores}</li>
+          </ul>
+        </div>
+        <div class=\"item\">
+          <h2>Memory</h2>
+          <ul>
+            <li>Total: {total_mem} bytes</li>
+            <li>Used: {used_mem} bytes</li>
+          </ul>
+        </div>
+        <div class=\"item\">
+          <h2>Swap</h2>
+          <ul>
+            <li>Total: {total_swap} bytes</li>
+            <li>Used: {used_swap} bytes</li>
+          </ul>
+        </div>
+        <div class=\"item\">
+          <h2>Processes</h2>
+          <ul>
+            <li>Total: {processes_total}</li>
+          </ul>
+        </div>
+      </div>
+      <small class=\"muted\"><a href=\"/\">Back to Home</a></small>
+    </div>
+  </div>
+</body>
+</html>"#);
+
+    HttpResponse::Ok()
+        .content_type("text/html; charset=utf-8")
+        .body(html)
 }
 
 #[get("/echo/{msg}")]
