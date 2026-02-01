@@ -271,7 +271,6 @@ async fn metrics() -> impl Responder {
       <div class="grid fs-grid">
         {disks_html}
       </div>
-      <small class="muted"><a href="/">Back to Home</a></small>
     </div>
 
     <div class="card">
