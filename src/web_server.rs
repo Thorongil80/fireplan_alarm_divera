@@ -147,7 +147,7 @@ fn gauge_html(percent: f64) -> String {
 
 #[get("/metrics")]
 async fn metrics() -> impl Responder {
-    use sysinfo::{System, CpuRefreshKind, RefreshKind, MemoryRefreshKind, ProcessRefreshKind, Disks};
+    use sysinfo::{System, CpuRefreshKind, RefreshKind, MemoryRefreshKind, ProcessRefreshKind, Disks, Components};
 
     let refresh = RefreshKind::everything()
         .with_memory(MemoryRefreshKind::everything().with_ram().with_swap())
@@ -205,6 +205,20 @@ async fn metrics() -> impl Responder {
   {gauge}
 </div>"#
         ));
+    }
+
+    // Collect temperatures via sysinfo Components (Linux)
+    let mut temps_html = String::new();
+    let components = Components::new_with_refreshed_list();
+    for comp in components.iter() {
+        let name = comp.label();
+        let temp = comp.temperature(); // Celsius
+        temps_html.push_str(&format!(
+            r#"<li>{name}: {temp:.1} °C</li>"#
+        ));
+    }
+    if temps_html.is_empty() {
+        temps_html = "<li>No temperature sensors found</li>".to_string();
     }
 
     let html = format!(r#"<!doctype html>
@@ -280,6 +294,12 @@ async fn metrics() -> impl Responder {
           <h2>Processes</h2>
           <ul>
             <li>Total: {processes_total}</li>
+          </ul>
+        </div>
+        <div class="item">
+          <h2>Temperatures</h2>
+          <ul>
+            {temps_html}
           </ul>
         </div>
       </div>
