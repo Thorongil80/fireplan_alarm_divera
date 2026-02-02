@@ -4,6 +4,10 @@ use reqwest::blocking::Client;
 use serde_derive::{Deserialize, Serialize};
 use std::fs::OpenOptions;
 use std::io::Write;
+use std::time::{Duration, Instant};
+use std::collections::HashMap;
+use once_cell::sync::Lazy;
+use std::sync::Mutex;
 
 #[derive(Clone, Serialize, Deserialize, Eq, Hash, PartialEq, Debug)]
 struct FireplanAlarm {
@@ -20,32 +24,44 @@ struct FireplanAlarm {
     zusatzinfo: String,
 }
 
+
+
 #[derive(Clone, Serialize, Deserialize, Eq, Hash, PartialEq, Debug)]
 struct ApiKey {
     utoken: String,
 }
 
-pub fn submit(standort: String, api_key: String, data: ParsedData) {
-    info!("[{}] - Fireplan submit triggered", standort);
+// Token cache: standort -> (token, stored_at)
+static TOKEN_CACHE: Lazy<Mutex<HashMap<String, (String, Instant)>>> = Lazy::new(|| Mutex::new(HashMap::new()));
+const TOKEN_TTL: Duration = Duration::from_secs(30 * 60);
 
-    let client = Client::new();
+fn get_api_token(client: &Client, standort: &str, api_key: &str) -> Option<String> {
+    // Try cached value
+    if let Ok(cache) = TOKEN_CACHE.lock() {
+        if let Some((tok, ts)) = cache.get(standort) {
+            if ts.elapsed() < TOKEN_TTL {
+                return Some(tok.clone());
+            }
+        }
+    }
+
+    // Fetch fresh token
     let token_string = match client
         .get(format!(
             "https://data.fireplan.de/api/Register/{}",
             standort
         ))
-        .header("API-Key", api_key.clone())
+        .header("API-Key", api_key.to_string())
         .header("accept", "*/*")
         .send()
     {
         Ok(r) => {
-            println!("{:?}", r);
             if r.status().is_success() {
                 match r.text() {
                     Ok(t) => t,
                     Err(e) => {
-                        error!("[{}] - Could not get API Key: {}", standort, e);
-                        return;
+                        error!("[{}] - Could not get API Key body: {}", standort, e);
+                        return None;
                     }
                 }
             } else {
@@ -54,12 +70,12 @@ pub fn submit(standort: String, api_key: String, data: ParsedData) {
                     standort,
                     r.status()
                 );
-                return;
+                return None;
             }
         }
         Err(e) => {
             error!("[{}] - Could not get API Key: {}", standort, e);
-            return;
+            return None;
         }
     };
 
@@ -67,11 +83,30 @@ pub fn submit(standort: String, api_key: String, data: ParsedData) {
         Ok(apikey) => apikey,
         Err(e) => {
             error!("could not deserialize token key: {}", e);
-            return;
+            return None;
         }
     };
 
-    info!("[{}] - acquired API Token: {:?}", standort, token);
+    // Store in cache
+    if let Ok(mut cache) = TOKEN_CACHE.lock() {
+        cache.insert(standort.to_string(), (token.utoken.clone(), Instant::now()));
+    }
+
+    Some(token.utoken)
+}
+
+pub fn submit(standort: String, api_key: String, data: ParsedData) {
+    info!("[{}] - Fireplan submit triggered", standort);
+
+    let client = Client::new();
+
+    // Use cached or freshly fetched token
+    let api_token = match get_api_token(&client, &standort, &api_key) {
+        Some(t) => t,
+        None => return,
+    };
+
+    info!("[{}] - using cached/fetched API Token", standort);
 
     for ric in data.rics {
         let alarm = FireplanAlarm {
@@ -92,13 +127,12 @@ pub fn submit(standort: String, api_key: String, data: ParsedData) {
 
         match client
             .post("https://data.fireplan.de/api/Alarmierung")
-            .header("API-Token", token.utoken.clone())
+            .header("API-Token", api_token.clone())
             .header("accept", "*/*")
             .json(&alarm)
             .send()
         {
             Ok(r) => {
-                println!("{:?}", r);
                 if r.status().is_success() {
                     // On success, append timestamp and "einsatznrlst - einsatzstichwort" to the submitted log file
                     let ts = chrono::Utc::now().to_rfc3339();

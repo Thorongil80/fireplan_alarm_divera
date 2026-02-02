@@ -4,9 +4,10 @@ use serde_derive::Deserialize;
 use serde_derive::Serialize;
 use simplelog::{ColorChoice, CombinedLogger, Config, TermLogger, TerminalMode, SimpleLogger};
 use std::fs;
-use std::sync::mpsc;
+use std::sync::{mpsc, Arc, Mutex};
 use cmd_lib::run_cmd;
 use once_cell::sync::OnceCell;
+use threadpool::ThreadPool;
 
 mod fireplan;
 mod parser;
@@ -156,46 +157,65 @@ fn main() {
         });
     }
 
-    let mut known_rics : HashSet<(String,String)> = HashSet::new();
+    // Shared known RICs set protected by a mutex for concurrent worker access
+    let known_rics: Arc<Mutex<HashSet<(String, String)>>> = Arc::new(Mutex::new(HashSet::new()));
+
+    // Thread pool with maximum size 20 to process Event::Data without blocking main loop
+    let pool = ThreadPool::new(20);
 
     // Use the local receiver in the main loop
     loop {
         match rx.recv() {
             Ok(Event::Data(mut data)) => {
-                let mut alarmier_rics: Vec<Ric> = vec![];
-                for ric in &data.rics {
-                    if ! known_rics.contains(&(data.einsatznrlst.clone(), ric.ric.clone())) {
-                        known_rics.insert((data.einsatznrlst.clone(), ric.ric.clone()));
-                        alarmier_rics.push(ric.clone());
+                let configuration = configuration.clone();
+                let known_rics = Arc::clone(&known_rics);
+                pool.execute(move || {
+                    // Deduplicate RICs based on (einsatznrlst, ric)
+                    let mut alarmier_rics: Vec<Ric> = vec![];
+                    if let Ok(mut set) = known_rics.lock() {
+                        for ric in &data.rics {
+                            let key = (data.einsatznrlst.clone(), ric.ric.clone());
+                            if !set.contains(&key) {
+                                set.insert(key);
+                                alarmier_rics.push(ric.clone());
+                            }
+                        }
+                    } else {
+                        warn!("Could not lock known_rics, skipping deduplication");
+                        alarmier_rics = data.rics.clone();
                     }
-                }
-                if alarmier_rics.is_empty() {
-                    warn!("All contained RICs already submitted for this EinsatzNrLeitstelle, do not submit this alarm")
-                } else {
-                    data.rics = alarmier_rics;
-                    info!("Submitting to Fireplan Standort Verwaltung");
-                    fireplan::submit("Verwaltung".to_string(), configuration.fireplan_api_key.clone(), data);
-                    if let Some(script_path) = configuration.simple_trigger.clone() {
-                        info!("Executing simple trigger");
-                        match run_cmd!($script_path) {
-                            Ok(()) => info!("Execute ok"),
-                            Err(e) => error!("Failure: {e}")
+
+                    if alarmier_rics.is_empty() {
+                        warn!("All contained RICs already submitted for this EinsatzNrLeitstelle, do not submit this alarm")
+                    } else {
+                        data.rics = alarmier_rics;
+                        info!("Submitting to Fireplan Standort Verwaltung");
+                        fireplan::submit("Verwaltung".to_string(), configuration.fireplan_api_key.clone(), data);
+                        if let Some(script_path) = configuration.simple_trigger.clone() {
+                            info!("Executing simple trigger");
+                            match run_cmd!($script_path) {
+                                Ok(()) => info!("Execute ok"),
+                                Err(e) => error!("Failure: {e}")
+                            }
                         }
                     }
-                }
+                });
             }
             Ok(Event::Submit(payload)) => {
-                match parser::parse(payload, configuration.clone()) {
-                    Ok(parsed_data) => {
-                        match send_event(Event::Data(parsed_data)) {
-                            Ok(_) => info!("Parsed data sent to main loop"),
-                            Err(e2) => error!("Failed to send parsed data: {}", e2),
+                let configuration = configuration.clone();
+                pool.execute(move || {
+                    match parser::parse(payload, configuration.clone()) {
+                        Ok(parsed_data) => {
+                            match send_event(Event::Data(parsed_data)) {
+                                Ok(_) => info!("Parsed data sent to main loop"),
+                                Err(e2) => error!("Failed to send parsed data: {}", e2),
+                            }
+                        }
+                        Err(e) => {
+                            error!("Failed to parse payload text: {}", e);
                         }
                     }
-                    Err(e) => {
-                        error!("Failed to parse payload text: {}", e);
-                    }
-                }
+                });
             }
             Ok(Event::Shutdown) => {
                 info!("Shutdown event received, exiting main loop");
