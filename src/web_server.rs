@@ -60,7 +60,7 @@ async fn root() -> impl Responder {
   <title>Fireplan IMAP</title>
   <style>
     body {{ font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji"; background: #0f172a; color: #e2e8f0; display: grid; place-items: center; min-height: 100vh; margin: 0; }}
-    .card {{ background: #111827; border: 1px solid #1f2937; border-radius: 12px; padding: 28px 32px; box-shadow: 0 10px 30px rgba(0,0,0,.4); max-width: 900px; width: 100%; box-sizing: border-box; }}
+    .card {{ background: #111827; border: 1px solid #1f2937; border-radius: 12px; padding: 28px 32px; box-shadow: 0 10px 30px rgba(0,0,0,.4); max-width: 1200px; width: 100%; box-sizing: border-box; }}
     h1 {{ margin: 0 0 12px; font-size: 36px; letter-spacing: .5px; }}
     p {{ margin: 8px 0 0; color: #cbd5e1; }}
     code {{ background: #0b1220; padding: 2px 6px; border-radius: 6px; }}
@@ -72,7 +72,7 @@ async fn root() -> impl Responder {
     .columns {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; margin-top: 18px; }}
     .panel {{ background: #0b1220; border: 1px solid #1f2937; border-radius: 10px; padding: 14px; }}
     .panel h2 {{ margin: 0 0 8px; font-size: 18px; color: #cbd5e1; }}
-    .logbox {{ background: #0b1220; border: 1px solid #1f2937; border-radius: 8px; padding: 10px; max-height: 280px; overflow: auto; font: 13px/1.45 ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace; }}
+    .logbox {{ background: #0b1220; border: 1px solid #1f2937; border-radius: 8px; padding: 10px; max-height: 400px; overflow: auto; font: 13px/1.45 ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace; }}
     .line {{ white-space: pre; color: #e5e7eb; }}
   </style>
 </head>
