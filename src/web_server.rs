@@ -69,10 +69,10 @@ async fn root() -> impl Responder {
     a:hover {{ color: #bfdbfe; }}
     .status {{ display: inline-flex; align-items: center; gap: 8px; }}
     .dot {{ width: 8px; height: 8px; border-radius: 50%; background: #22c55e; box-shadow: 0 0 0 3px rgba(34,197,94,.25); }}
-    .columns {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; margin-top: 18px; }}
+    .columns {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(500px, 1fr)); gap: 16px; margin-top: 18px; }}
     .panel {{ background: #0b1220; border: 1px solid #1f2937; border-radius: 10px; padding: 14px; }}
     .panel h2 {{ margin: 0 0 8px; font-size: 18px; color: #cbd5e1; }}
-    .logbox {{ background: #0b1220; border: 1px solid #1f2937; border-radius: 8px; padding: 10px; max-height: 400px; overflow: auto; font: 13px/1.45 ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace; }}
+    .logbox {{ background: #0b1220; border: 1px solid #1f2937; border-radius: 8px; padding: 10px; max-height: 500px; overflow: auto; font: 13px/1.45 ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace; }}
     .line {{ white-space: pre; color: #e5e7eb; }}
   </style>
 </head>
