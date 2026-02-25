@@ -137,7 +137,7 @@ pub fn parse(
                 result.rics.push(abt3_dummy_ric.clone());
             }
 
-        if token.contains("UW 4/")
+        if (token.contains("UW 4/") || token.contains("UW 11" || token.contains("UW 74"))
             && ! result.rics.contains(&abt4_dummy_ric) {
                 result.rics.push(abt4_dummy_ric.clone());
             }
