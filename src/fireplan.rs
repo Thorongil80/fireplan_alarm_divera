@@ -40,6 +40,7 @@ fn get_api_token(client: &Client, standort: &str, api_key: &str) -> Option<Strin
     if let Ok(cache) = TOKEN_CACHE.lock() {
         if let Some((tok, ts)) = cache.get(standort) {
             if ts.elapsed() < TOKEN_TTL {
+                info!("Returning token from cache, stored {:?}", ts);
                 return Some(tok.clone());
             }
         }
@@ -79,6 +80,8 @@ fn get_api_token(client: &Client, standort: &str, api_key: &str) -> Option<Strin
         }
     };
 
+
+    info!("Retrieved token from fireplan API");
     let token: ApiKey = match serde_json::from_str(&token_string) {
         Ok(apikey) => apikey,
         Err(e) => {
@@ -90,6 +93,7 @@ fn get_api_token(client: &Client, standort: &str, api_key: &str) -> Option<Strin
     // Store in cache
     if let Ok(mut cache) = TOKEN_CACHE.lock() {
         cache.insert(standort.to_string(), (token.utoken.clone(), Instant::now()));
+        info!("Stored token in cache for standort {}", standort);
     }
 
     Some(token.utoken)
