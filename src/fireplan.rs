@@ -144,7 +144,7 @@ pub fn submit(standort: String, api_key: String, data: ParsedData) {
                         "OK - {}\t{} - {} - {}\n",
                         ts,
                         data.einsatznrlst.as_str(),
-                        data.ric.text,
+                        ric.text,
                         data.einsatzstichwort.as_str()
                     );
                     if let Err(e) = OpenOptions::new()
@@ -190,7 +190,7 @@ pub fn submit(standort: String, api_key: String, data: ParsedData) {
                     "FAIL - {}\t{} - {} - {}\n",
                     ts,
                     data.einsatznrlst.as_str(),
-                    data.ric.text,
+                    ric.text,
                     data.einsatzstichwort.as_str()
                 );
                 if let Err(e) = OpenOptions::new()
