@@ -153,34 +153,25 @@ pub fn parse(
     // Google Maps coordinates from lat/lng (format: "lat,lng")
     result.koordinaten = format!("{},{}", data.lat.trim(), data.lng.trim());
 
-    // on the left hand-side of the first comma is the street name
-    result.strasse = data.address.split(',').next().unwrap_or("").split_whitespace().next().unwrap_or("").to_string();
-
-    // on the right hand-side of the first space in the strasse element is the house number (if any)
-    result.hausnummer = data
-        .address
-        .split(',')
-        .next()
-        .unwrap_or("")
-        .split_whitespace()
-        .nth(1)
-        .unwrap_or("")
-        .to_string();
-
-    // extract zusatzinfo between "Meldung:" and "Schlagwort" from the original text
-    if let Some(start_idx) = data.text.find("Meldung:") {
-        let after_start = start_idx + "Meldung:".len();
-        if let Some(end_idx_rel) = data.text[after_start..].find("Schlagwort") {
-            let end_idx = after_start + end_idx_rel;
-            result.zusatzinfo = data.text[after_start..end_idx].trim().to_string();
+    // Parse German-style address: "Straßenname Hausnummer" or just "Straßenname"
+    // Everything before the first comma is the address part
+    let address_part = data.address.split(',').next().unwrap_or("").trim();
+    // Split into tokens and check if the last token starts with a digit (house number)
+    let tokens: Vec<&str> = address_part.split_whitespace().collect();
+    if let Some(last) = tokens.last() {
+        if last.chars().next().map(|c| c.is_ascii_digit()).unwrap_or(false) {
+            result.hausnummer = last.to_string();
+            result.strasse = tokens[..tokens.len() - 1].join(" ");
         } else {
-            // no end marker found -> empty
-            result.zusatzinfo = String::new();
+            result.strasse = tokens.join(" ");
+            result.hausnummer = String::new();
         }
     } else {
-        // no start marker found -> empty
-        result.zusatzinfo = String::new();
+        result.strasse = String::new();
+        result.hausnummer = String::new();
     }
+
+    result.zusatzinfo = data.text;
 
     if result.einsatzstichwort.is_empty() {
         warn!("Parser: No EINSATZSTICHWORT found");
