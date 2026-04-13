@@ -104,6 +104,8 @@ pub fn submit(standort: String, api_key: String, data: ParsedData) {
 
     let client = Client::new();
 
+    let mut alarms: Vec<FireplanAlarm> = Vec::new();
+
     // Use cached or freshly fetched token
     let api_token = match get_api_token(&client, &standort, &api_key) {
         Some(t) => t,
@@ -112,7 +114,7 @@ pub fn submit(standort: String, api_key: String, data: ParsedData) {
 
     info!("[{}] - using cached/fetched API Token", standort);
 
-    for ric in data.rics {
+    for ric in data.rics.clone() {
         let alarm = FireplanAlarm {
             ric: ric.ric,
             subRIC: ric.subric,
@@ -127,24 +129,29 @@ pub fn submit(standort: String, api_key: String, data: ParsedData) {
             zusatzinfo: data.zusatzinfo.clone(),
         };
 
-        info!("[{}] - submitting Alarm: {:?}", standort, alarm);
+        alarms.push(alarm);
+
+    }
+
+    info!("[{}] - submitting Alarm: {:?}", standort, alarms);
 
         match client
-            .post("https://data.fireplan.de/api/Alarmierung")
+            .put("https://data.fireplan.de/api/Alarmierung")
             .header("API-Token", api_token.clone())
             .header("accept", "*/*")
-            .json(&alarm)
+            .json(&alarms)
             .send()
         {
             Ok(r) => {
                 if r.status().is_success() {
                     // On success, append timestamp and "einsatznrlst - einsatzstichwort" to the submitted log file
                     let ts = chrono::Utc::now().to_rfc3339();
+                    let rics_str = data.rics.iter().map(|r| format!("{}:{}", r.ric, r.subric)).collect::<Vec<_>>().join(",");
                     let line = format!(
                         "OK - {}\t{} - {} - {}\n",
                         ts,
                         data.einsatznrlst.as_str(),
-                        ric.text,
+                        rics_str,
                         data.einsatzstichwort.as_str()
                     );
                     if let Err(e) = OpenOptions::new()
@@ -162,7 +169,6 @@ pub fn submit(standort: String, api_key: String, data: ParsedData) {
                         }
                         Err(e) => {
                             error!("[{}] - Could not get result text: {}", standort, e);
-                            continue;
                         }
                     }
                 } else {
@@ -175,10 +181,8 @@ pub fn submit(standort: String, api_key: String, data: ParsedData) {
                         Ok(t) => info!("[{}] - server says: {}", standort, t),
                         Err(e) => {
                             error!("[{}] - Could not get result text: {}", standort, e);
-                            continue;
                         }
                     }
-                    continue;
                 }
             }
             Err(e) => {
@@ -186,11 +190,12 @@ pub fn submit(standort: String, api_key: String, data: ParsedData) {
 
                 // On failure, append timestamp and "einsatznrlst - einsatzstichwort" to the submitted log file
                 let ts = chrono::Utc::now().to_rfc3339();
+                let rics_str = data.rics.iter().map(|r| format!("{}:{}", r.ric, r.subric)).collect::<Vec<_>>().join(",");
                 let line = format!(
                     "FAIL - {}\t{} - {} - {}\n",
                     ts,
                     data.einsatznrlst.as_str(),
-                    ric.text,
+                    rics_str,
                     data.einsatzstichwort.as_str()
                 );
                 if let Err(e) = OpenOptions::new()
@@ -201,9 +206,7 @@ pub fn submit(standort: String, api_key: String, data: ParsedData) {
                 {
                     error!("[{}] - Failed to write submission log: {}", standort, e);
                 }
-                
-                continue;
+
             }
         }
-    }
 }
