@@ -146,7 +146,7 @@ pub fn submit(standort: String, api_key: String, data: ParsedData) {
                 if r.status().is_success() {
                     // On success, append timestamp and "einsatznrlst - einsatzstichwort" to the submitted log file
                     let ts = chrono::Utc::now().to_rfc3339();
-                    let rics_str = data.rics.iter().map(|r| format!("{}:{}", r.ric, r.subric)).collect::<Vec<_>>().join(",");
+                    let rics_str = data.rics.iter().map(|r| format!("{}:{}", r.text, r.subric)).collect::<Vec<_>>().join(",");
                     let line = format!(
                         "OK - {}\t{} - {} - {}\n",
                         ts,
@@ -190,7 +190,7 @@ pub fn submit(standort: String, api_key: String, data: ParsedData) {
 
                 // On failure, append timestamp and "einsatznrlst - einsatzstichwort" to the submitted log file
                 let ts = chrono::Utc::now().to_rfc3339();
-                let rics_str = data.rics.iter().map(|r| format!("{}:{}", r.ric, r.subric)).collect::<Vec<_>>().join(",");
+                let rics_str = data.rics.iter().map(|r| format!("{}:{}", r.text, r.subric)).collect::<Vec<_>>().join(",");
                 let line = format!(
                     "FAIL - {}\t{} - {} - {}\n",
                     ts,
