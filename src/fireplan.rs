@@ -35,6 +35,10 @@ struct ApiKey {
 static TOKEN_CACHE: Lazy<Mutex<HashMap<String, (String, Instant)>>> = Lazy::new(|| Mutex::new(HashMap::new()));
 const TOKEN_TTL: Duration = Duration::from_secs(30 * 60);
 
+fn truncate_to_max_chars(input: &str, max_chars: usize) -> String {
+    input.chars().take(max_chars).collect()
+}
+
 fn get_api_token(client: &Client, standort: &str, api_key: &str) -> Option<String> {
     // Try cached value
     if let Ok(cache) = TOKEN_CACHE.lock() {
@@ -126,7 +130,7 @@ pub fn submit(standort: String, api_key: String, data: ParsedData) {
             objektname: data.objektname.clone(),
             koordinaten: data.koordinaten.clone(),
             einsatzstichwort: data.einsatzstichwort.clone(),
-            zusatzinfo: data.zusatzinfo.clone(),
+            zusatzinfo: truncate_to_max_chars(&data.zusatzinfo, 512),
         };
 
         alarms.push(alarm);
